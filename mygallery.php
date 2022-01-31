@@ -1,76 +1,61 @@
 ﻿<?php
 
-//define("DIR_SMALL", $_SERVER['DOCUMENT_ROOT']); 
-//define("DIR_BIG",__DIR__ . "/gallery_img/big/");
-//define("DIR_SMALL",__DIR__ . "/gallery_img/small/");
+$bigPath = "/gallery_img/big/";
+$smallPath = "/gallery_img/small/";
+ 
+define("DIR_BIG",__DIR__ . $bigPath);
+define("DIR_SMALL",__DIR__ . $smallPath);
 
-$images = getImages ();
+$images = getImages(DIR_BIG);
 
-function getImages ()
+function getImages($path)
 {
-	return array_splice(scandir('gallery_img/small'), 2);
+    return array_splice(scandir($path), 2);
 }
 
 $messages = [
-	'ok' => 'Файл загружен',
-	'error' => 'Ошибка загрузки',
-	'wrong_size' => 'Недопустимый размер',
-	'wrong_format' => 'Недопустимый формат',
+    'ok' => 'Файл загружен',
+    'error' => 'Ошибка загрузки',
 ];
 
 if (!empty($_FILES)) {
+    $path = DIR_BIG . $_FILES['myFile']['name'];
 
-	$path = "gallery_img/small/" . $_FILES['myFile']['name'];
+    //size check
+    if ($_FILES['myFile']['size'] > 1024*1*1024) {
+        echo "Размер файла не больше 5 мб";
+        exit;
+    }
 
-	//check the file here
-	var_dump($FILES['myFile']['size']);
-	if ($FILES['myFile']['size'] > 1024 * 1 * 1024) {
+    //extension check
+    $blacklist = array(".php", ".phtml", ".php3", ".php4");
+        foreach ($blacklist as $item) {
+            if(preg_match("/$item\$/i", $_FILES['myFile']['name'])) {
+                echo "Загрузка PHP-файлов запрещена";
+                exit;
+            }
+        }
 
-		echo "Размер файла не больше 5 мб";
-		exit;
-	} else {
+    //file type check
+    $imageinfo = getimagesize($_FILES['myFile']['tmp_name']);
+        if($imageinfo['mime'] != 'image/gif' && $imageinfo['mime'] != 'image/jpeg') {
+            echo "Можно загружать только GIF и JPEG файлы";
+            exit;
+        }
 
-		if (move_uploaded_file($_FILES['myFile']['tmp_name'], $path)) {
+    if (move_uploaded_file($_FILES['myFile']['tmp_name'], $path)) {
+        //change the size here
+        $image = new SimpleImage();
+        $image->load($path);
+        $image->resizeToWidth(250);
+        $image->save(DIR_SMALL . $_FILES['myFile']['name']);
 
-		//change the size here
-		$message = "ok";
-
-	} else {
-
-		$message = "error";
-
-	}
-	header("location: mygallery.php?message=" . $message);
-	die();
-
-	}
-
-	
+        $message = "ok";
+    } else {
+        $message = "error";
+    }
+    header("location:" . $_SERVER['PHP_SELF'] . "?message=" . $message);
+    die();	
 }
-$viewMessage = $messages[$_GET['message']];
 
-?>
-<!DOCTYPE html>
-<head>
-	<meta charset="UTF-8">
-	<title>Моя галерея</title>
-	<link rel="stylesheet" type="text/css" href="style.css?<?=rand(1, 1000000);?>"/>
-</head>
-<body>
-	<div id="main">
-	<div class="post_title"><h2>Моя галерея</h2></div>
-		<div class="gallery">
-			<?php foreach ($images as $value): ?>
-			<a rel="gallery" class="photo" href="gallery_img/big/<?=$value?>"><img src="gallery_img/small/<?=$value?>" width="150" height="100" /></a>
-			<?php endforeach; ?>
-		</div>
-		<div>
-			<form method="post" enctype="multipart/form-data">
-				<input type="file" name="myFile">
-				<input type="submit" name="submit" value="Загрузить">
-			</form>
-			<div><?=$viewMessage?></div>
-		</div>
-	</div>
-</body>
-</html>
+$viewMessage = $messages[$_GET['message']];

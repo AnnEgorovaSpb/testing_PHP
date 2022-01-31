@@ -1,6 +1,6 @@
 body {
-	/*background: #444 url('img/body.jpg');*/
-	/*color: #444;*/
+	background: #444 url('img/body.jpg');
+	color: #444;
 	font: normal 1.2em Verdana,Arial,sans-serif;
 	height: 100%;
 	padding-bottom: 1px;
